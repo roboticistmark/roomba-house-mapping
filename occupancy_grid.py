@@ -7,6 +7,11 @@
 from mpl_toolkits.mplot3d import axes3d
 import matplotlib.pyplot as plt
 from matplotlib import cm
+import numpy as np
+import pickle
+from pykalman import KalmanFilter
+import os
+
 
 class CreateOccupancyGrid(object):
     
@@ -18,20 +23,20 @@ class CreateOccupancyGrid(object):
         pass
 
 
-    def get_data_points(self):
+    def get_data_points(self, map_number):
         """ Return reliable data points, calculated for trustworthiness """
+        self.weigh_data_points(map_number)
         pass
 
 
-    def add_data_point(self, data_point, map_number):
+    def add_data_point(self, x, y, map_number):
         """ Collect a data point and save it to the map """
         # Data point should be an X, Y tuple and game_number = Z
         # because that will be the 'layer' to help determine the accuracy 
         # of a certain point
-        # Format: X = [[1,2,3,4], [1,2,3,4]] etc
-        self.X.(len(self.X)-1).append(data_point[0])
-        self.Y.(len(self.Y)-1).append(data_point[0])
-        self.Z.(len(self.X)-1).append(map_number)
+        self.X.append(x)
+        self.Y.append(y)
+        self.Z.append(map_number)
         pass
 
 
@@ -39,37 +44,76 @@ class CreateOccupancyGrid(object):
         """ Determine a point's weight """
         # Look @ how many points on that X,Y spot through various Z positions
         # If most recent positions show obstacle, probably obstacle
-        for range(map_number-5, map_number):
+        #for range(map_number-5, map_number):
             # Find X, Y for that map number...
-            pass
-        pass
+        #    pass
+        # Load up pickles
+        X, Y, Z = self.get_pickles()
+        # Perform Kalman filters
+        # Initial state = 0 because we're starting off at coords 0,0
+        kf = KalmanFilter(initial_state_mean = 0, n_dim_obs=2)
+        measurements = kf.em(measurements.smooth(measurements)
+        # TODO: Deal w/ updating locations
+        # means, covars = self.update_data_points(measurements)
+        # measurements = means
+        # Return data points
+        return measurements
+        # TODO: The above should be in localization
+
+
+    def update_data_point(self, measurements):
+        """ Determine newest data points """
+        # TODO: Move to localization
+        means, covariances = kf.filter(measurements)
+	next_mean, next_covariance = kf.filter_update(
+	    means[-1], covariances[-1], new_measurement)
+        return means, covariances
+    
+
+    def get_pickles(self):
+        """ Get any relevant pickles, load into lists and return """
+        # Get pwd
+        # Get all pickles in the current folder
+        X = []
+        Y = []
+        Z = []
+        pwd = os.system('pwd')
+        pickles = os.path.walk(pwd)
+        for p in pickles:
+            if p.endswith('pkl'):
+		opened_pickle = pickle.load(open(p, "rb"))
+		X.append(opened_pickle['X'])
+		Y.append(opened_pickle['Y'])
+		Z.append(opened_pickle['Z'])
+        return X, Y, Z
+
+
+    def home_safe(self, map_number):
+        """ When the Roomba reaches home base, pickle data """
+        name = "pickle_%s.pkl", map_number
+        dictionary = {'X': self.X, 'Y', self.Y, 'Z', self.Z}
+        pickle.dump(dictionary, open(name, "wb")
 
 
     def create_map(self):
         """ Return a reliable map """
-        # TODO: After experimenting, this is not actually the plot I want to use..
-        # a scatter plot would be more appropriate. To be implemented
-        # ASAP when I return home and have proper internet/access to docs again
         self.get_data_points()
         # Put map into Matplotlib, return chart & data
         # Return map
 	fig = plt.figure()
 	ax = fig.gca(projection='3d')
-	X, Y, Z = axes3d.get_test_data(5)
-	#X, Y, Z = axes3d.get_test_data(0.05)
-        #X = [[-1.1 -2.1 -3.1 -4.1 -5.1 -5.1 -5.1 -5.1 -5.1 -5.1][-1.1 -2.1 -3.1 -4.1 -5.1 -5.1 -5.1 -5.1 -5.1 -5.1][-1.1 -2.1 -3.1 -4.1 -5.1 -5.1 -5.1 -5.1 -5.1 -5.1][-1.1 -2.1 -3.1 -4.1 -5.1 -5.1 -5.1 -5.1 -5.1 -5.1]]
-        #Y = [[3.1 3.1 3.1 3.1 3.1 2.1 1.1 0.1 -1.1 -2.1][3.1 3.1 3.1 3.1 3.1 2.1 1.1 0.1 -1.1 -2.1][3.1 3.1 3.1 3.1 3.1 2.1 1.1 0.1 -1.1 -2.1][3.1 3.1 3.1 3.1 3.1 2.1 1.1 0.1 -1.1 -2.1]]
-        #Z = [[0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1][1.1 1.1 1.1 1.1 1.1 1.1 1.1 1.1 1.1 1.1][2.1 2.1 2.1 2.1 2.1 2.1 2.1 2.1 2.1 2.1][3.1 3.1 3.1 3.1 3.1 3.1 3.1 3.1 3.1 3.1]]
-        X = [[-30,  -20], [30, -20]]
-        Y = [[-30, -30], [30, -30]]
-        Z = [[ 0, 0], [5, 5]]
+        #X = np.array([[-30,  -20], [30, -20]])
+        #Y = np.array([[-30, -30], [30, -30]])
+        #Z = np.array([[ 0, 0], [5, 5]])
+        # Turn the list of lists into numpy arrays to submit to the 3D plot
+        fullX, fullY, fullZ = self.get_pickles()
+        X = np.array(fullX)
+        Y = np.array(fullY)
+        Z = np.array(fullZ)
         print "X: ", X
         print "Y: ", Y
         print "Z: ", Z
-	ax.plot_surface(X, Y, Z, rstride=8, cstride=8, alpha=0.3)
-	cset = ax.contourf(X, Y, Z, zdir='z', offset=-100, cmap=cm.coolwarm)
-	cset = ax.contourf(X, Y, Z, zdir='x', offset=-40, cmap=cm.coolwarm)
-	cset = ax.contourf(X, Y, Z, zdir='y', offset=40, cmap=cm.coolwarm)
+	ax.scatter3D(X, Y, Z)
 
 	ax.set_xlabel('X')
 	ax.set_xlim(-40, 40)

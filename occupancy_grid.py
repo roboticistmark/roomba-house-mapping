@@ -52,7 +52,7 @@ class CreateOccupancyGrid(object):
         # Perform Kalman filters
         # Initial state = 0 because we're starting off at coords 0,0
         kf = KalmanFilter(initial_state_mean = 0, n_dim_obs=2)
-        measurements = kf.em(measurements.smooth(measurements)
+        measurements = kf.em(measurements.smooth(measurements))
         # TODO: Deal w/ updating locations
         # means, covars = self.update_data_points(measurements)
         # measurements = means
@@ -91,8 +91,8 @@ class CreateOccupancyGrid(object):
     def home_safe(self, map_number):
         """ When the Roomba reaches home base, pickle data """
         name = "pickle_%s.pkl", map_number
-        dictionary = {'X': self.X, 'Y', self.Y, 'Z', self.Z}
-        pickle.dump(dictionary, open(name, "wb")
+        dictionary = {'X': self.X, 'Y': self.Y, 'Z': self.Z}
+        pickle.dump(dictionary, open(name, "wb"))
 
 
     def create_map(self):
